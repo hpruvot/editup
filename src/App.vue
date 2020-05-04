@@ -111,8 +111,10 @@ export default {
           this.correctAnswer();
         } else {
           this.selectedDiv.classList.add('-wrong');
-          this.resetCenter();
+          this.wrongAnswer();
         }
+      } else {
+        this.wrongAnswer();
       }
     },
     handleDragOver: function(event) {
@@ -137,6 +139,7 @@ export default {
       }
     },
     correctAnswer: function() {
+      console.log("correctAnswer")
       anime({
         targets: '.game__center',
         opacity: 0,
@@ -148,10 +151,10 @@ export default {
           this.$refs.gameCenter.style.opacity = 1
         }.bind(this)
       });
+      this.resetCenter();
     },
-    resetCenter: function() {
-      console.log("reset center")
-      document.querySelector('.game__center').style.pointerEvents = "";
+    wrongAnswer: function() {
+      console.log("wrongAnswer")
       anime({
         targets: '.game__center',
         top: [this.$refs.gameCenter.style.top, this.positions.elementInitialTop], // from 100 to 250
@@ -160,10 +163,15 @@ export default {
         opacity: 1,
         elasticity: 50
       });
+      this.resetCenter();
+    },
+    resetCenter: function() {
+      console.log("reset center")
       this.positions.clientX = undefined
       this.positions.clientY = undefined
       this.positions.movementX = 0
       this.positions.movementY = 0
+      document.querySelector('.game__center').style.pointerEvents = "";
     }
   }
 }
