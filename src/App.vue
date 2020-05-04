@@ -1,48 +1,43 @@
 <template>
-  <div 
-    id="app" 
-    class="game"
-    v-on:dragend="handleDragEnd"
-    v-on:dragover="handleDragOver"
-    v-on:drop="handleDrop">
-    <div 
-      v-for="(question, index) in questions" 
-      :key="index"
-      v-show="index === questionIndex"
-      class="game__wrapper">
-      {{index}}
-      {{questionIndex}}
-      <div class="game__zones">
-        <div 
-          v-for="(choice, index) in question.choices"
-          :key="index" 
-          :data-zone="index + 1"
-          class="game__zone">
-          <p>{{ choice }}</p>
+  <div id="app" class="game">
+    <div class="game__play"
+      v-on:dragend="handleDragEnd"
+      v-on:dragover="handleDragOver"
+      v-on:drop="handleDrop"
+      v-show="!endGame">
+      <div class="game__score">
+        {{ scoring.left }}
+        {{ scoring.right }}
+      </div>
+      <div 
+        v-for="(question, index) in questions" 
+        :key="index"
+        v-show="index === questionIndex"
+        class="game__wrapper">
+        <div class="game__zones">
+          <div 
+            v-for="(choice, index) in question.choices"
+            :key="index" 
+            :data-zone="index + 1"
+            class="game__zone">
+            <p>{{ choice }}</p>
+          </div>
         </div>
       </div>
-      <!-- <div class="game__drop">
-        <div class="game__score"></div>
+      <div class="game__drop">
+        <div class="game__scoring"></div>
         <div class="game__center" 
           draggable="true"
           ref="gameCenter"
           v-on:dragend="handleDragEnd"
           v-on:dragstart="handleDragStart"
         >
-          <div class="game__question">{{ question.question }}</div>
+          <div class="game__question">{{ currentQuestion }}</div>
         </div>
-      </div> -->
-    </div>
-    <div class="game__drop">
-      <div class="game__score"></div>
-      <div class="game__center" 
-        draggable="true"
-        ref="gameCenter"
-        v-on:dragend="handleDragEnd"
-        v-on:dragstart="handleDragStart"
-      >
-        <div class="game__question">{{ questions && questions[questionIndex].question }}</div>
       </div>
+    </div>
+    <div class="game__results" v-show="endGame">
+      Results !
     </div>
   </div>
 </template>
@@ -59,6 +54,8 @@ export default {
       loading: true,
       errored: false,
       selectedDiv: null,
+      currentQuestion: null,
+      endGame: false,
       // Store current question index
       questionIndex: 0,
       // Positions
@@ -69,6 +66,10 @@ export default {
         clientY: undefined,
         movementX: 0,
         movementY: 0
+      },
+      scoring: {
+        left: 0,
+        right: 0
       }
     }
   },
@@ -80,6 +81,7 @@ export default {
       .get('questions.json')
       .then(response => {
         this.questions = response.data.questions
+        this.currentQuestion = response.data.questions[0].question
       })
       .catch(error => {
         console.log(error)
@@ -108,7 +110,7 @@ export default {
 
         if(selectedAnswer == this.questions[this.questionIndex].answer) {
           this.selectedDiv.classList.add('-correct');
-          this.correctAnswer();
+          this.correctAnswer(selectedAnswer);
         } else {
           this.selectedDiv.classList.add('-wrong');
           this.wrongAnswer();
@@ -138,20 +140,27 @@ export default {
         this.resetCenter();
       }
     },
-    correctAnswer: function() {
+    correctAnswer: function(selectedAnswer) {
       console.log("correctAnswer")
-      anime({
-        targets: '.game__center',
-        opacity: 0,
-        duration: 500, // Can be inherited
-        complete: function() {
-          this.questionIndex++
-          this.$refs.gameCenter.style.top = this.positions.elementInitialTop
-          this.$refs.gameCenter.style.left = this.positions.elementInitialLeft
-          this.$refs.gameCenter.style.opacity = 1
-        }.bind(this)
-      });
-      this.resetCenter();
+      this.endGame = this.questionIndex + 1 == this.questions.length;
+      
+      if(!this.endGame) {
+        selectedAnswer == 1 ? this.scoring.left++ : this.scoring.right++
+        anime({
+          targets: '.game__center',
+          opacity: 0,
+          duration: 500, // Can be inherited
+          complete: function() {
+            this.questionIndex++
+            this.$refs.gameCenter.style.top = this.positions.elementInitialTop
+            this.$refs.gameCenter.style.left = this.positions.elementInitialLeft
+            this.$refs.gameCenter.style.opacity = 1
+            this.currentQuestion = this.questions[this.questionIndex].question
+          }.bind(this)
+        });
+
+        this.resetCenter();
+      }
     },
     wrongAnswer: function() {
       console.log("wrongAnswer")
@@ -172,6 +181,10 @@ export default {
       this.positions.movementX = 0
       this.positions.movementY = 0
       document.querySelector('.game__center').style.pointerEvents = "";
+    },
+    handleHoverScore(e) {
+      console.log(e.target);
+      this.currentQuestion = this.questions[this.questionIndex].question
     }
   }
 }
@@ -285,7 +298,7 @@ body {
     }
   }
 
-  &__score {
+  &__scoring {
     position: absolute;
     display: flex;
     align-items: center;
@@ -321,7 +334,7 @@ body {
 
   &__question {
     font-weight: bold;
-    border-bottom: 2px solid #FF0077;
+    padding: 5px;
   }
 }
 
