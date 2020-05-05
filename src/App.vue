@@ -16,15 +16,23 @@
         :key="index"
         v-show="index === questionIndex"
         class="game__wrapper">
-        <div class="game__zones">
-          <div 
+        <svg 
+          height="100%" 
+          width="100%" 
+          viewBox="0 0 20 20" 
+          class="game__zones"
+        >
+          <circle r="5" cx="10" cy="10" fill="transparent"
             v-for="(choice, index) in question.choices"
-            :key="index" 
+            :key="index"
+            class="game__zone"
             :data-zone="index + 1"
-            class="game__zone">
-            <p>{{ choice }}</p>
-          </div>
-        </div>
+            :stroke="colors[index]"
+            stroke-width="10"
+            :stroke-dasharray="value + ' 31.4'"
+            :stroke-dashoffset="-( index * value )"
+          />
+        </svg>
       </div>
       <div class="game__drop">
         <div class="game__scoring"></div>
@@ -52,6 +60,9 @@ export default {
   name: 'App',
   data () {
     return {
+      colors: ['#ECD078', '#D95B43', '#C02942', '#542437', '#53777A', '#8A9B0F'],
+      value: 0,
+      numberChoices: null,
       questions: null,
       loading: true,
       errored: false,
@@ -87,6 +98,8 @@ export default {
       .then(response => {
         this.questions = response.data.questions
         this.currentQuestion = response.data.questions[0].question
+        this.numberChoices = response.data.choices
+        this.value = 31.4 / this.numberChoices;
       })
       .catch(error => {
         console.log(error)
@@ -243,9 +256,6 @@ body {
 
   &__zone {
     position: relative;
-    width: 50%;
-    height: 100%;
-    transition: background 0.3s;
 
     p {
       position: absolute;
@@ -263,54 +273,6 @@ body {
 
       @media screen and (min-width: 786px) {
         font-size: 30px;
-      }
-    }
-
-    &:nth-of-type(1) {
-      background: #ECD078;
-
-      p {
-        transform: rotate(-90deg) translate(-50%, -50%);
-      }
-    }
-
-    &:nth-of-type(2) {
-      background: #D95B43;
-
-      p {
-        transform: rotate(90deg) translate(-50%, -50%);
-      }
-    }
-
-    &:nth-of-type(3) {
-      background: #C02942;
-
-      p {
-        transform: rotate(90deg) translate(-50%, -50%);
-      }
-    }
-
-    &:nth-of-type(4) {
-      background: #542437;
-
-      p {
-        transform: rotate(90deg) translate(-50%, -50%);
-      }
-    }
-
-    &:nth-of-type(5) {
-      background: #53777A;
-
-      p {
-        transform: rotate(90deg) translate(-50%, -50%);
-      }
-    }
-
-    &:nth-of-type(6) {
-      background: #8A9B0F;
-
-      p {
-        transform: rotate(90deg) translate(-50%, -50%);
       }
     }
 
@@ -381,7 +343,7 @@ body {
 @keyframes wrongAnswer {
   0% {}
   50% {
-    background: crimson
+    stroke: crimson
   }
   100% {}
 }
@@ -389,7 +351,7 @@ body {
 @keyframes rightAnswer {
   0% {}
   50% {
-    background: greenyellow
+    stroke: greenyellow
   }
   100% {}
 }
