@@ -4,6 +4,8 @@
       v-on:dragend="handleDragEnd"
       v-on:dragover="handleDragOver"
       v-on:drop="handleDrop"
+      v-on:touchend="handleDrop"
+      v-on:touchmove="handleDragOver"
       v-show="!endGame">
       <div class="game__score">
         {{ scoring.left }}
@@ -74,6 +76,9 @@ export default {
     }
   },
   components: {},
+  created() {
+    window.addEventListener("resize", this.handleResize);
+  },
   mounted () {
     this.positions.elementInitialTop = this.$refs.gameCenter.offsetTop + 'px';
     this.positions.elementInitialLeft = this.$refs.gameCenter.offsetLeft + 'px';
@@ -90,16 +95,26 @@ export default {
       .finally(() => this.loading = false)
   },
   methods: {
+    handleResize: function() {
+      console.log("handleResize");
+      if(this.$refs.gameCenter) {
+        this.$refs.gameCenter.style.top = "";
+        this.$refs.gameCenter.style.left = "";
+        this.positions.elementInitialTop = this.$refs.gameCenter.offsetTop + 'px';
+        this.positions.elementInitialLeft = this.$refs.gameCenter.offsetLeft + 'px';
+      }
+    },
     handleDragStart: function(e) {
       console.log("handleDragStart")
       var crt = document.createElement('p');
       crt.style.display = "none"; /* or visibility: hidden, or any of the above */
       crt.style.opacity = "0"; /* or visibility: hidden, or any of the above */
-      e.dataTransfer.setDragImage(crt, 0, 0);
+      if(e.dataTransfer) {
+        e.dataTransfer.setDragImage(crt, 0, 0);
+      }
     },
     handleDragEnd: function(e) {
       console.log("handleDragEnd")
-      console.log("selectedDiv", this.selectedDiv)
       let animationCompleted = false;
 
       if(this.selectedDiv && !animationCompleted) {
@@ -124,18 +139,21 @@ export default {
       event.preventDefault();
       document.querySelector('.game__center').style.pointerEvents = "none";
 
-      this.positions.movementX = this.positions.clientX - event.clientX
-      this.positions.movementY = this.positions.clientY - event.clientY
-      this.positions.clientX = event.clientX
-      this.positions.clientY = event.clientY
+      this.positions.movementX = event.clientX ? this.positions.clientX - event.clientX : this.positions.clientX - event.touches[0].clientX
+      this.positions.movementY = event.clientY ? this.positions.clientY - event.clientY : this.positions.clientY - event.touches[0].clientY
+      this.positions.clientX = event.clientX ? event.clientX : event.touches[0].clientX
+      this.positions.clientY = event.clientY ? event.clientY : event.touches[0].clientY
       // set the element's new position:
       this.$refs.gameCenter.style.top = (this.$refs.gameCenter.offsetTop - this.positions.movementY) + 'px'
       this.$refs.gameCenter.style.left = (this.$refs.gameCenter.offsetLeft - this.positions.movementX) + 'px'
     },
     handleDrop: function(e) {
-      console.log("handleDrop")
-      if(e.target.classList.contains('game__zone')) {
-        this.selectedDiv = e.target;
+      console.log("handleDrop", e)
+      let zone = e.type == "touchend" ? document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY) : e.target
+      
+      if(zone.classList.contains('game__zone')) {
+        this.selectedDiv = zone;
+        this.handleDragEnd(e);
       } else {
         this.resetCenter();
       }
@@ -143,7 +161,7 @@ export default {
     correctAnswer: function(selectedAnswer) {
       console.log("correctAnswer")
       this.endGame = this.questionIndex + 1 == this.questions.length;
-      
+
       if(!this.endGame) {
         selectedAnswer == 1 ? this.scoring.left++ : this.scoring.right++
         anime({
@@ -195,12 +213,14 @@ html,
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  height: 100vh;
+  overflow: hidden;
 }
 
 #app {
   width: 100%;
   height: 100%;
+  overflow: hidden;
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -231,14 +251,19 @@ body {
       position: absolute;
       top: 50%;
       left: 50%;
-      font-size: 30px;
+      font-size: 20px;
       line-height: 1.2;
       margin: 0;
       transform-origin: 0 0;
       color: white;
       font-weight: bold;
+      white-space: nowrap;
       letter-spacing: 0.03em;
       text-shadow: 0px 2.76726px 2.21381px rgba(12, 13, 101, 0.0431739), 0px 6.6501px 5.32008px rgba(12, 13, 101, 0.0598892), 0px 12.5216px 10.0172px rgba(12, 13, 101, 0.0689504), 0px 22.3363px 17.869px rgba(12, 13, 101, 0.075418), 0px 41.7776px 33.4221px rgba(12, 13, 101, 0.0834553), 0px 100px 80px rgba(12, 13, 101, 0.11);
+
+      @media screen and (min-width: 786px) {
+        font-size: 30px;
+      }
     }
 
     &:nth-of-type(1) {
@@ -307,11 +332,16 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     transform-origin: 0% 0%;
-    width: 300px;
-    height: 300px;
+    width: 150px;
+    height: 150px;
     border-radius: 100%;
     background: grey;
     cursor: pointer;
+
+    @media screen and (min-width: 786px) {
+      width: 300px;
+      height: 300px;
+    }
   }
 
   &__center {
@@ -325,16 +355,26 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     transform-origin: 0% 0%;
-    width: 200px;
-    height: 200px;
+    width: 100px;
+    height: 100px;
     border-radius: 100%;
     background: white;
     cursor: pointer;
+
+    @media screen and (min-width: 786px) {
+      width: 200px;
+      height: 200px;
+    }
   }
 
   &__question {
     font-weight: bold;
     padding: 5px;
+    font-size: 14px;
+
+    @media screen and (min-width: 786px) {
+      font-size: 16px;
+    }
   }
 }
 
